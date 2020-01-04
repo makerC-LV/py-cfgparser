@@ -1,5 +1,6 @@
 import unittest
 
+from src.grammar import Grammar
 from src.rules import lit, eps, eof, plus, star, reg, seqn, alt, InvalidRegexDefinitionError, lazy, Rule
 
 
@@ -48,15 +49,52 @@ class TestRulesMethods(unittest.TestCase):
         rec = lazy()
         r = alt("R", seqn("Ra", rec, lit('a')), lit('b'))
         rec.set_rule(r)
+        r.remove_lazy_rules()
         pn = r.apply("b", 0, 0)
         self.check(pn, True, 0, 1)
-        Rule.DEBUG = True
+        r.init_memo()
         pn = r.apply("bac", 0, 0)
         self.check(pn, True, 0, 2)
+        r.init_memo()
         pn = r.apply("baa", 0, 0)
         self.check(pn, True, 0, 3)
+        r.init_memo()
         pn = r.apply("baaac", 0, 0)
         self.check(pn, True, 0, 4)
+
+    # R = aRb | eps
+    def test_non_left_recursion(self):
+        rec = lazy()
+        r = alt("R", seqn("aRb", lit('a'), rec, lit('b')), eps())
+        rec.set_rule(r)
+        r.remove_lazy_rules()
+        pn = r.apply("ab", 0, 0)
+        self.check(pn, True, 0, 2)
+        r.init_memos()
+        pn = r.apply("aabb", 0, 0)
+        self.check(pn, True, 0, 4)
+        r.init_memos()
+        pn = r.apply("aacbb", 0, 0)
+        self.check(pn, True, 0, 0)
+
+    # A --> Br | eps
+    # B --> Cd
+    # C --> At
+    def test_indirect_left_recursion(self):
+        rec = lazy()
+        C = seqn("At", rec, lit('t'))
+        B = seqn("Cd", C, lit('d'))
+        A = alt("Br|eps", seqn("Br", B, lit('r')), eps())
+        rec.set_rule(A)
+        g = Grammar()
+        g.add(A)
+        g.set_nullables()
+        g.set_left_recursives()
+        # A.remove_lazy_rules()
+        Rule.DEBUG = True
+        pn = A.apply("tdr", 0, 0)
+        self.check(pn, True, 0, 3)
+
 
     def check(self, pn, matched, start: int, length: int):
         self.assertEqual(start, pn.start)

@@ -51,5 +51,15 @@ class TestTreeMethods(unittest.TestCase):
         child3: Tree = Tree('d')
         self.assertEqual(child2, node.find_child(lambda x: x == child2))
 
+    def test_replace(self):
+        node = Tree('a')
+        child = Tree('b')
+        node.add(child)
+        child2 = Tree('c')
+        node.add(child2)
+        child3 = Tree('d')
+        node.replace_child(child2, child3)
+        self.assertEqual(child3, node.children[-1])
+
 if __name__ == '__main__':
     unittest.main()
